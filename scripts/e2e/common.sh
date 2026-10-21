@@ -297,7 +297,7 @@ e2e_retry() {
     fi
     # A here-string rather than a pipe: under pipefail, grep -q exiting early
     # can make the printf on the left look like a failure.
-    if [[ "$attempt" -eq "$max_attempts" ]] || ! grep -qE 'Account not found|Request timeout|timed out|502|503|429' <<<"$out"; then
+    if [[ "$attempt" -eq "$max_attempts" ]] || ! grep -qE 'Account not found|Request timeout|timed out|SendRequest|client error|rejected `?(429|50[0-9])|\b(429|50[234])\b' <<<"$out"; then
       printf '%s\n' "$out"
       return "$rc"
     fi
