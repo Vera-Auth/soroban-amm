@@ -25,7 +25,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/e2e/common.sh"
 
 SHARED_FLOWS=(v2 factory cl governance staking twap)
-SELF_CONTAINED_FLOWS=(token router dex_aggregator oracle_aggregator cl_position_nft pol_vesting twap_consumer)
+SELF_CONTAINED_FLOWS=(token router dex_aggregator oracle_aggregator cl_position_nft pol_vesting twap_consumer twal_consumer)
 ALL_FLOWS=("${SHARED_FLOWS[@]}" "${SELF_CONTAINED_FLOWS[@]}")
 
 ONLY_RAW=""
@@ -124,6 +124,8 @@ source "$ROOT_DIR/e2e/cl_position_nft.sh"
 source "$ROOT_DIR/e2e/pol_vesting.sh"
 # shellcheck source=scripts/e2e/twap_consumer.sh
 source "$ROOT_DIR/e2e/twap_consumer.sh"
+# shellcheck source=scripts/e2e/twal_consumer.sh
+source "$ROOT_DIR/e2e/twal_consumer.sh"
 
 declare -A FLOW_STATUS
 declare -A FLOW_DURATION
@@ -168,6 +170,7 @@ run_flow_isolated oracle_aggregator run_oracle_aggregator_flow
 run_flow_isolated cl_position_nft run_cl_position_nft_flow
 run_flow_isolated pol_vesting run_pol_vesting_flow
 run_flow_isolated twap_consumer run_twap_consumer_flow
+run_flow_isolated twal_consumer run_twal_consumer_flow
 
 printf '\n%s\n' "Summary"
 printf '%s\n' "-------"
