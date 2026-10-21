@@ -107,17 +107,30 @@ deploy_tokens() {
 
       CURRENT_STEP="initialize Reward Token"
       log "initializing Reward Token (immediately after deploy)"
-      invoke "$REWARD_TOKEN_CONTRACT_ID" initialize \
-        --admin "$SOURCE_PUBLIC_KEY" \
-        --name "Soroban AMM Reward" \
-        --symbol "SAMR" \
-        --decimals 7 >/dev/null 2>&1 || {
-          if invoke_read "$REWARD_TOKEN_CONTRACT_ID" name >/dev/null 2>/dev/null; then
-            log "Reward Token already initialized"
-          else
-            die "failed to initialize Reward Token"
-          fi
-        }
+      # A public RPC node can lag the deploy by a few seconds, so an initialize
+      # sent right after it is rejected as "not found". A rejected initialize
+      # has not been applied, so it is safe to send it again after a short wait.
+      reward_initialized=0
+      for attempt in 1 2 3 4; do
+        if invoke "$REWARD_TOKEN_CONTRACT_ID" initialize \
+          --admin "$SOURCE_PUBLIC_KEY" \
+          --name "Soroban AMM Reward" \
+          --symbol "SAMR" \
+          --decimals 7 >/dev/null 2>&1; then
+          reward_initialized=1
+          break
+        fi
+        if invoke_read "$REWARD_TOKEN_CONTRACT_ID" name >/dev/null 2>/dev/null; then
+          log "Reward Token already initialized"
+          reward_initialized=1
+          break
+        fi
+        log "initialize Reward Token not accepted yet (attempt $attempt of 4); waiting before retrying"
+        sleep $(( attempt * 10 ))
+      done
+      if [[ "$reward_initialized" -ne 1 ]]; then
+        die "failed to initialize Reward Token"
+      fi
       persist_var "REWARD_TOKEN_INITIALIZED" "1"
       verify_token "$REWARD_TOKEN_CONTRACT_ID" "$SOURCE_PUBLIC_KEY"
       log "Reward Token: $REWARD_TOKEN_CONTRACT_ID"
