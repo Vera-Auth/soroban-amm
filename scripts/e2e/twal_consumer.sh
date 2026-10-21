@@ -68,6 +68,9 @@ run_twal_consumer_flow() {
   first_ts=$(invoke "$pool" get_liquidity_cumulative | grep -Eo '[0-9]+' | tail -n 1)
 
   # ── change liquidity, wait for ledger time, snapshot again ──────────────
+  # The seeding deposit spent the keeper's minted balance, so mint more first.
+  invoke "$tx" mint --to "$keeper" --amount 500000000 >/dev/null
+  invoke "$ty" mint --to "$keeper" --amount 500000000 >/dev/null
   local shares
   shares=$(invoke "$pool" add_liquidity \
     --provider "$keeper" --amount_a 500000000 --amount_b 500000000 \
