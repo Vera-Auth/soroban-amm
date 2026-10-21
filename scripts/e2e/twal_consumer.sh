@@ -71,11 +71,13 @@ run_twal_consumer_flow() {
   # The seeding deposit spent the keeper's minted balance, so mint more first.
   invoke "$tx" mint --to "$keeper" --amount 500000000 >/dev/null
   invoke "$ty" mint --to "$keeper" --amount 500000000 >/dev/null
-  local shares
+  local low high shares
+  low=$(invoke "$pool" get_info | grep -Eo '"total_shares":"?[0-9]+' | grep -Eo '[0-9]+' | tail -n 1)
   shares=$(invoke "$pool" add_liquidity \
     --provider "$keeper" --amount_a 500000000 --amount_b 500000000 \
     --min_shares 0 --deadline "$(( $(date +%s) + 600 ))" | parse_i128)
   assert_gt "twal_consumer: add_liquidity mints shares" "$shares" 0
+  high=$(invoke "$pool" get_info | grep -Eo '"total_shares":"?[0-9]+' | grep -Eo '[0-9]+' | tail -n 1)
   local second_ts
   second_ts=$(( first_ts + 60 ))
   e2e_wait_for_timestamp "$pool" "$second_ts"
@@ -84,12 +86,11 @@ run_twal_consumer_flow() {
 
   # ── TWAL reads: the average lies between the liquidity bounds ───────────
   local window avg
-  window=60
+  window=30
   avg=$(invoke "$twal" get_twal_liquidity --pool "$pool" --window_seconds "$window" | parse_i128)
   assert_gt "twal_consumer: TWAL over a 60s window is positive" "$avg" 0
-  local low high
-  low=$(invoke "$pool" get_info | grep -Eo '"total_shares":"?[0-9]+' | grep -Eo '[0-9]+' | tail -n 1)
-  high=$(( low * 2 ))
+  # The window covers time before and after the deposit, so the average lies
+  # between the liquidity before it and the liquidity after it.
   assert_between "twal_consumer: TWAL lies between observed liquidity bounds" "$avg" "$low" "$high"
 
   # ── rejection paths ─────────────────────────────────────────────────────
