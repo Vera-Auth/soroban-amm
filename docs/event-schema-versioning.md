@@ -324,6 +324,13 @@ a representative call sequence and asserts every pool event carries the leading
 | Event | Topics | Payload |
 |---|---|---|
 | `migrated` | `provider` | `(v2_shares: i128, deposited_a: i128, deposited_b: i128, position_token_id: Option<u64>, leftover_a: i128, leftover_b: i128)` |
+| `factory_set` | — | `(factory: Address)` |
+| `default_pair_set` | — | `(v2_pool: Address, v3_pool: Address)` |
+| `paused` | — | `(admin: Address)` |
+| `unpaused` | — | `(admin: Address)` |
+| `upgraded` | — | `(new_wasm_hash: BytesN<32>)` |
+| `admin_nominated` | — | `(admin: Address, new_admin: Address)` |
+| `admin_changed` | — | `(new_admin: Address)` |
 
 ### BatchRouter — `contracts/batch_router/src/lib.rs`
 
@@ -820,5 +827,12 @@ count. Events marked unversioned carry their payload without the
 | Event | Topics | Payload fields | Envelope |
 |---|---|---|---|
 | `migrated` | 2 | `v2_shares`, `deposited_a`, `deposited_b`, `position_token_id`, `leftover_a`, `leftover_b` | v1 |
+| `factory_set` | 1 | `factory` | v1 |
+| `default_pair_set` | 1 | `v2_pool`, `v3_pool` | v1 |
+| `paused` | 1 | `admin` | v1 |
+| `unpaused` | 1 | `admin` | v1 |
+| `upgraded` | 1 | `new_wasm_hash` | v1 |
+| `admin_nominated` | 1 | `admin`, `new_admin` | v1 |
+| `admin_changed` | 1 | `new_admin` | v1 |
 
 <!-- END GENERATED EVENT FIELD CATALOGUE -->

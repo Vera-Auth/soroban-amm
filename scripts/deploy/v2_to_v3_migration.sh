@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # v2_to_v3_migration.sh — deploy V2->V3 Migration helper
 # Sourceable module for deploy.sh
+#
+# One instance serves every pair: it is initialized with the factory that
+# attests the pools passed to `migrate`. The AMM/CL pair from this deployment
+# is stored as the default pair for the legacy `migrate_default` entry point.
 
 deploy_v2_to_v3_migration() {
   CURRENT_CONTRACT="v2_to_v3_migration"
@@ -11,9 +15,10 @@ deploy_v2_to_v3_migration() {
 
   if [[ -z "${AMM_POOL_CONTRACT_ID:-}" ]]; then AMM_POOL_CONTRACT_ID=$(get_persisted AMM_POOL_CONTRACT_ID || echo ""); fi
   if [[ -z "${CL_POOL_CONTRACT_ID:-}" ]]; then CL_POOL_CONTRACT_ID=$(get_persisted CL_POOL_CONTRACT_ID || echo ""); fi
+  if [[ -z "${FACTORY_CONTRACT_ID:-}" ]]; then FACTORY_CONTRACT_ID=$(get_persisted FACTORY_CONTRACT_ID || echo ""); fi
 
-  if [[ -z "${AMM_POOL_CONTRACT_ID:-}" || -z "${CL_POOL_CONTRACT_ID:-}" ]]; then
-    warn "missing AMM or CL pool — skipping v2_to_v3_migration"
+  if [[ -z "${AMM_POOL_CONTRACT_ID:-}" || -z "${CL_POOL_CONTRACT_ID:-}" || -z "${FACTORY_CONTRACT_ID:-}" ]]; then
+    warn "missing AMM, CL or factory contract — skipping v2_to_v3_migration"
     return 0
   fi
 
@@ -48,14 +53,25 @@ deploy_v2_to_v3_migration() {
       log "skipping v2_to_v3_migration initialize (--only/--skip filter)"
     else
       CURRENT_STEP="initialize v2_to_v3_migration"
-      log "initializing v2_to_v3_migration admin=$ADMIN_ADDRESS v2=$AMM_POOL_CONTRACT_ID v3=$CL_POOL_CONTRACT_ID"
+      log "initializing v2_to_v3_migration admin=$ADMIN_ADDRESS factory=$FACTORY_CONTRACT_ID"
       # The contract exposes no getters to read the init state back, so a
       # failed initialize is fatal rather than assumed to be a rerun.
-      if ! invoke "$V2_TO_V3_MIGRATION_CONTRACT_ID" initialize --admin "$ADMIN_ADDRESS" --v2_pool "$AMM_POOL_CONTRACT_ID" --v3_pool "$CL_POOL_CONTRACT_ID" >/dev/null 2>&1; then
+      if ! invoke "$V2_TO_V3_MIGRATION_CONTRACT_ID" initialize --admin "$ADMIN_ADDRESS" --factory "$FACTORY_CONTRACT_ID" >/dev/null 2>&1; then
         die "failed to initialize v2_to_v3_migration at $V2_TO_V3_MIGRATION_CONTRACT_ID"
       fi
       log "v2_to_v3_migration initialized"
       persist_var "V2_TO_V3_MIGRATION_INITIALIZED" "1"
     fi
+  fi
+
+  if should_skip_persisted "V2_TO_V3_MIGRATION_DEFAULT_PAIR_SET"; then
+    log "skipping v2_to_v3_migration default pair (already set)"
+  elif should_deploy "v2_to_v3_migration"; then
+    CURRENT_STEP="set default pair v2_to_v3_migration"
+    log "setting v2_to_v3_migration default pair v2=$AMM_POOL_CONTRACT_ID v3=$CL_POOL_CONTRACT_ID"
+    if ! invoke "$V2_TO_V3_MIGRATION_CONTRACT_ID" set_default_pair --v2_pool "$AMM_POOL_CONTRACT_ID" --v3_pool "$CL_POOL_CONTRACT_ID" >/dev/null 2>&1; then
+      die "failed to set default pair on v2_to_v3_migration at $V2_TO_V3_MIGRATION_CONTRACT_ID"
+    fi
+    persist_var "V2_TO_V3_MIGRATION_DEFAULT_PAIR_SET" "1"
   fi
 }

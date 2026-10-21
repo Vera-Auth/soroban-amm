@@ -484,6 +484,13 @@ Defined in [contracts/v2_to_v3_migration/src/lib.rs](../contracts/v2_to_v3_migra
 | 6 | `SlippageExceeded` | V3 liquidity minted fell below slippage limits. | Widen slippage bounds. |
 | 7 | `MigrationFailed` | V2 burn or V3 mint contract call failed. | Verify V2 LP balance and V3 parameters. |
 | 8 | `TokenMismatch` | V2 pool tokens do not match V3 pool tokens. | Select matching V2 and V3 pools. |
+| 9 | `Paused` | `migrate` / `migrate_default` called while the admin has paused the contract. | Wait for the admin to unpause. Previews still work. |
+| 10 | `UnknownPool` | A V2 or CL pool is not attested by the factory registry (wrong address, unregistered pool, or a CL pool filed under a different fee tier). | Pass the pool addresses the factory returns from `get_pool` / `get_cl_pool`. No funds move. |
+| 11 | `NoPendingAdmin` | `accept_admin` called with no pending nomination. | Ask the admin to call `propose_admin` first. |
+| 12 | `WrongAdmin` | `accept_admin` called by an address other than the nominee. | Accept from the nominated address. |
+| 13 | `FactoryNotSet` | A factory-validated entry point ran on an instance with no factory. | Admin calls `set_factory`. |
+| 14 | `NoDefaultPair` | `migrate_default` / `preview_range_default` called with no default pair stored. | Use `migrate` with explicit pools, or admin calls `set_default_pair`. |
+| 15 | `PreviewFailed` | `preview_migration` could not quote the position on the CL pool. | Check the tick range and pool state. |
 
 ---
 

@@ -88,7 +88,7 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000002"
               },
               {
-                "symbol": "migrate"
+                "symbol": "migrate_default"
               }
             ],
             "data": {
@@ -157,7 +157,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "migrate"
+                "symbol": "migrate_default"
               }
             ],
             "data": {
@@ -218,7 +218,7 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "migrate"
+                  "symbol": "migrate_default"
                 },
                 {
                   "vec": [
@@ -291,7 +291,7 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000002"
               },
               {
-                "symbol": "preview_range"
+                "symbol": "preview_range_default"
               }
             ],
             "data": {
@@ -324,7 +324,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "preview_range"
+                "symbol": "preview_range_default"
               }
             ],
             "data": {
@@ -385,7 +385,7 @@
                   "string": "contract try_call failed"
                 },
                 {
-                  "symbol": "preview_range"
+                  "symbol": "preview_range_default"
                 },
                 {
                   "vec": [
