@@ -11,7 +11,7 @@ set -Eeuo pipefail
 
 # batch_swap POOL TOKEN_IN AMOUNT MIN_OUT DEADLINE — one-op batch JSON.
 batch_swap() {
-  printf '[{"Swap":{"pool":"%s","token_in":"%s","amount_in":%s,"min_out":%s,"pool_kind":"Amm","zero_for_one":true,"sqrt_price_limit_x96":0}}]' \
+  printf '[{"Swap":{"pool":"%s","token_in":"%s","amount_in":"%s","min_out":"%s","pool_kind":"Amm","zero_for_one":true,"sqrt_price_limit_x96":"0"}}]' \
     "$1" "$2" "$3" "$4"
 }
 
@@ -37,7 +37,7 @@ run_batch_router_flow() {
   # ── execute_batch: swap, add liquidity, remove liquidity ────────────────
   local ops results info_before info_after
   info_before=$(invoke "$pool" get_info)
-  ops=$(printf '[{"Swap":{"pool":"%s","token_in":"%s","amount_in":1000000,"min_out":0,"pool_kind":"Amm","zero_for_one":true,"sqrt_price_limit_x96":0}},{"AddLiquidity":{"pool":"%s","amount_a":1000000,"amount_b":1000000,"min_shares":0}},{"RemoveLiquidity":{"pool":"%s","shares":1000000,"min_a":0,"min_b":0}}]' \
+  ops=$(printf '[{"Swap":{"pool":"%s","token_in":"%s","amount_in":"1000000","min_out":"0","pool_kind":"Amm","zero_for_one":true,"sqrt_price_limit_x96":"0"}},{"AddLiquidity":{"pool":"%s","amount_a":"1000000","amount_b":"1000000","min_shares":"0"}},{"RemoveLiquidity":{"pool":"%s","shares":"1000000","min_a":"0","min_b":"0"}}]' \
     "$pool" "$ta" "$pool" "$pool")
   results=$(invoke "$router" execute_batch --caller "$trader" --ops "$ops" --deadline "$deadline")
   assert_eq "batch_router: three results, one per op" "$(count_matches '"Swap"|"AddLiquidity"|"RemoveLiquidity"' <<<"$results")" "3"
