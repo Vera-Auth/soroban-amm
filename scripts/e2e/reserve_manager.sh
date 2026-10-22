@@ -26,7 +26,8 @@ run_reserve_manager_flow() {
   tc=$(e2e_new_token RMC)
   td=$(e2e_new_token RMD)
   # The factory needs the CL WASM hash before it can create CL pools.
-  invoke "$factory" set_cl_wasm_hash --cl_wasm_hash "$(e2e_upload concentrated_liquidity)" >/dev/null
+  # deploy.sh already uploaded the CL WASM and saved its hash; reuse it.
+  invoke "$factory" set_cl_wasm_hash --cl_wasm_hash "${CL_WASM_HASH:-$(e2e_upload concentrated_liquidity)}" >/dev/null
   cl=$(invoke "$factory" create_cl_pool \
     --caller "$governance" --token_a "$tc" --token_b "$td" \
     --fee_bps 30 --initial_tick 0 | extract_contract_id)
