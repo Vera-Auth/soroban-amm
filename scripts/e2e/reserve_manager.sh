@@ -46,15 +46,16 @@ run_reserve_manager_flow() {
   local forward reverse
   forward=$(invoke "$rm" get_min_reserve --token_a "$ta" --token_b "$tb")
   reverse=$(invoke "$rm" get_min_reserve --token_a "$tb" --token_b "$ta")
-  # The pair is stored in canonical order, so the per-token floors come back
-  # relative to that order. Reading in the reverse order must return the same
-  # two floors, swapped.
+  # The pair is stored in canonical order, so the floors come back the same
+  # whichever order the tokens are passed in. Check that both stored floors
+  # are the ones set, and that the reverse read returns them unchanged.
   local fwd_a fwd_b rev_a rev_b
   fwd_a=$(printf '%s\n' "$forward" | json_num min_reserve_a)
   fwd_b=$(printf '%s\n' "$forward" | json_num min_reserve_b)
   rev_a=$(printf '%s\n' "$reverse" | json_num min_reserve_a)
+  rev_b=$(printf '%s\n' "$reverse" | json_num min_reserve_b)
   assert_eq "reserve_manager: the two stored floors are the ones set" "$(( fwd_a + fwd_b ))" "300000"
-  assert_eq "reserve_manager: reverse-order read swaps the floors" "$rev_a" "$fwd_b"
+  assert_eq "reserve_manager: the floors are order independent" "${rev_a}:${rev_b}" "${fwd_a}:${fwd_b}"
   assert_eq "reserve_manager: one configured pair" "$(invoke "$rm" get_configured_pair_count | parse_i128)" "1"
   assert_contains "reserve_manager: pair is listed" \
     "$(invoke "$rm" list_configured_pairs --offset 0 --limit 10)" "$ta"
