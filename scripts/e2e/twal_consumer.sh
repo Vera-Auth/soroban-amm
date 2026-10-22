@@ -9,27 +9,19 @@
 #   bash scripts/e2e/twal_consumer.sh
 set -Eeuo pipefail
 
-# e2e_wait_for_timestamp POOL TARGET_TS — poll the pool's cumulative timestamp
-# until it reaches TARGET_TS. Fails with a clear message after 240 seconds.
-e2e_wait_for_timestamp() {
-  local pool="$1" target="$2" ts deadline
+# e2e_wait_until_wallclock TARGET — poll the clock until TARGET (epoch seconds)
+# has passed. Testnet ledger time tracks wall-clock time within seconds, and a
+# pool's own timestamp only moves when the pool is touched, so it is not a
+# usable clock here. Fails with a clear message after 240 seconds.
+e2e_wait_until_wallclock() {
+  local target="$1" deadline
   deadline=$(( $(date +%s) + 240 ))
-  while :; do
-    ts=$(invoke "$pool" get_liquidity_cumulative | grep -Eo '[0-9]+' | tail -n 1)
-    if (( ts >= target )); then
-      return 0
-    fi
+  while (( $(date +%s) < target )); do
     if (( $(date +%s) >= deadline )); then
-      die "e2e_wait_for_timestamp: pool clock stuck at $ts, waited for $target"
+      die "e2e_wait_until_wallclock: clock did not reach $target within 240s"
     fi
     sleep 5
   done
-}
-
-# twal_bool — reduce a bool result from the CLI ("true" / "false", maybe
-# quoted or padded) to its bare word.
-twal_bool() {
-  tr -d '[:space:]"'
 }
 
 run_twal_consumer_flow() {
@@ -64,8 +56,8 @@ run_twal_consumer_flow() {
   assert_contains "twal_consumer: paginated list includes the pool" \
     "$(invoke "$twal" get_tracked_pools_paginated --offset 0 --limit 10)" "$pool"
 
-  local first_ts
-  first_ts=$(invoke "$pool" get_liquidity_cumulative | grep -Eo '[0-9]+' | tail -n 1)
+  local first_snapshot_at
+  first_snapshot_at=$(date +%s)
 
   # ── change liquidity, wait for ledger time, snapshot again ──────────────
   # The seeding deposit spent the keeper's minted balance, so mint more first.
@@ -78,9 +70,7 @@ run_twal_consumer_flow() {
     --min_shares 0 --deadline "$(( $(date +%s) + 600 ))" | parse_i128)
   assert_gt "twal_consumer: add_liquidity mints shares" "$shares" 0
   high=$(invoke "$pool" get_info | grep -Eo '"total_shares":"?[0-9]+' | grep -Eo '[0-9]+' | tail -n 1)
-  local second_ts
-  second_ts=$(( first_ts + 60 ))
-  e2e_wait_for_timestamp "$pool" "$second_ts"
+  e2e_wait_until_wallclock "$(( first_snapshot_at + 65 ))"
   invoke "$twal" save_snapshot --pool "$pool" >/dev/null
   assert_eq "twal_consumer: second snapshot recorded" "$(invoke "$twal" get_snapshot_count --pool "$pool" | parse_i128)" "2"
 
