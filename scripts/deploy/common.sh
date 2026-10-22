@@ -254,12 +254,35 @@ upload_wasm() {
 invoke() {
   local contract_id="$1"
   shift
+  local err out rc attempt
   CURRENT_STEP="stellar contract invoke --id ${contract_id:0:8}... -- $*"
-  stellar contract invoke \
-    --id "$contract_id" \
-    --network "$NETWORK" \
-    --source "$SOURCE_ACCOUNT" \
-    -- "$@"
+  err=$(mktemp)
+  for attempt in 1 2 3 4; do
+    rc=0
+    out=$(stellar contract invoke \
+      --id "$contract_id" \
+      --network "$NETWORK" \
+      --source "$SOURCE_ACCOUNT" \
+      -- "$@" 2>"$err") || rc=$?
+    if [[ "$rc" -eq 0 ]]; then
+      cat "$err" >&2
+      rm -f "$err"
+      printf '%s\n' "$out"
+      return 0
+    fi
+    # Retry only failures where the call was not applied: the RPC node has
+    # not seen the account or contract yet, the simulation or upload was
+    # rejected, or the transport failed. A timeout is not retried, because
+    # the transaction may still have landed.
+    if [[ "$attempt" -eq 4 ]] || ! grep -qE 'Account not found|transaction simulation failed|TxSorobanInvalid|SendRequest|client error|rejected `?(429|50[0-9])' "$err"; then
+      cat "$err" >&2
+      rm -f "$err"
+      printf '%s\n' "$out"
+      return "$rc"
+    fi
+    printf '[retry] invoke %s: not applied yet (attempt %s of 4); waiting before retrying\n' "${contract_id:0:8}" "$attempt" >&2
+    sleep $(( attempt * 10 ))
+  done
 }
 
 # invoke_read — invoke for a read-only query. Like invoke, it adds the `--`
